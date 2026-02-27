@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk · JasaOTP</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <a href="/" class="auth-logo">
+                <svg width="28" height="28" viewBox="0 0 32 32">
+                    <rect width="32" height="32" rx="8" fill="url(#lg)" /><text x="16" y="23" text-anchor="middle"
+                        fill="white" font-family="Arial" font-weight="900" font-size="18">J</text>
+                    <defs>
+                        <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#8B5CF6" />
+                            <stop offset="100%" stop-color="#EC4899" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                JasaOTP
+            </a>
+            <h1>Masuk ke akunmu</h1>
+            <p class="auth-sub">Belum punya akun? <a href="/register">Daftar gratis</a></p>
+
+            <div class="auth-error" id="authError"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="nama@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Masukkan password" required>
+                </div>
+                <button type="submit" class="btn-auth" id="btnSubmit">Masuk</button>
+            </form>
+
+            <a href="/" class="auth-back">← Kembali ke beranda</a>
+        </div>
+    </div>
+    <script src="/js/auth.js"></script>
+</body>
+
+</html>

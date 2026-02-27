@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login · JasaOTP</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <a href="/" class="auth-logo">
+                <svg width="28" height="28" viewBox="0 0 32 32">
+                    <rect width="32" height="32" rx="8" fill="url(#lg)" /><text x="16" y="23" text-anchor="middle"
+                        fill="white" font-family="Arial" font-weight="900" font-size="18">J</text>
+                    <defs>
+                        <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#8B5CF6" />
+                            <stop offset="100%" stop-color="#EC4899" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                JasaOTP
+            </a>
+            <div style="text-align:center;margin-bottom:8px">
+                <span
+                    style="display:inline-block;padding:3px 10px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-size:0.68rem;font-weight:700;border-radius:5px;text-transform:uppercase;letter-spacing:0.06em">Admin
+                    Panel</span>
+            </div>
+            <h1>Login Admin</h1>
+            <p class="auth-sub">Masuk ke panel admin</p>
+
+            <div class="auth-error" id="authError"></div>
+
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="admin" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password admin" required>
+                </div>
+                <button type="submit" class="btn-auth">Masuk Admin</button>
+            </form>
+
+            <a href="/" class="auth-back">← Kembali ke beranda</a>
+        </div>
+    </div>
+    <script>
+        const form = document.getElementById('adminLoginForm');
+        const err = document.getElementById('authError');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            err.classList.remove('show');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = '/admin';
+                } else {
+                    err.textContent = data.message || 'Login gagal';
+                    err.classList.add('show');
+                }
+            } catch (e) {
+                err.textContent = 'Terjadi kesalahan';
+                err.classList.add('show');
+            }
+        });
+    </script>
+</body>
+
+</html>

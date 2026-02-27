@@ -1,0 +1,173 @@
+/* ============================================
+   JasaOTP — Auth Pages (Login & Register)
+   ============================================ */
+
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    padding: 24px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 32px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.04);
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: var(--text);
+}
+
+.auth-card h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+}
+
+.auth-card .auth-sub {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-3);
+    margin-bottom: 28px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 6px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-family: var(--font);
+    color: var(--text);
+    transition: 0.2s;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--glow-1);
+}
+
+.form-group input::placeholder {
+    color: var(--text-3);
+}
+
+.btn-auth {
+    width: 100%;
+    padding: 14px;
+    background: var(--grad);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: 0.25s;
+    margin-top: 8px;
+    box-shadow: 0 0 16px var(--glow-1);
+}
+
+.btn-auth:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 24px var(--glow-1), 0 0 48px var(--glow-2);
+}
+
+.btn-auth:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.82rem;
+    color: var(--text-3);
+}
+
+.auth-footer a {
+    color: var(--purple);
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.auth-footer a:hover {
+    opacity: 0.8;
+}
+
+.auth-error {
+    display: none;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.auth-error.show {
+    display: block;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-3);
+    font-size: 0.75rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-back {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.82rem;
+    color: var(--text-3);
+    transition: 0.2s;
+}
+
+.auth-back:hover {
+    color: var(--text);
+}

@@ -1,0 +1,290 @@
+/* ============================================
+   JasaOTP — Admin Panel Styles
+   ============================================ */
+
+.admin-sb {
+    border-right-color: var(--purple) !important;
+    border-right-width: 2px;
+}
+
+.admin-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--grad);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    border-radius: 6px;
+    margin: 0 8px 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.admin-indicator {
+    padding: 5px 12px;
+    background: var(--bg-3);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--purple);
+}
+
+.stat-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.sc-purple {
+    border-left: 3px solid var(--purple);
+}
+
+.sc-pink {
+    border-left: 3px solid var(--pink);
+}
+
+.sc-teal {
+    border-left: 3px solid #14b8a6;
+}
+
+.sc-orange {
+    border-left: 3px solid #f97316;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Card header */
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.card-header .card-title {
+    margin-bottom: 0;
+}
+
+.search-input {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-family: var(--font);
+    background: var(--bg-2);
+    outline: none;
+    color: var(--text);
+    width: 220px;
+}
+
+.search-input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--glow-1);
+}
+
+.filter-select {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-family: var(--font);
+    background: var(--bg-2);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+}
+
+.btn-add {
+    padding: 8px 16px;
+    background: var(--grad);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-add:hover {
+    box-shadow: 0 0 12px var(--glow-1);
+}
+
+/* Action buttons */
+.btn-sm {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: 0.15s;
+    margin-right: 4px;
+}
+
+.btn-approve {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.btn-approve:hover {
+    background: #d1fae5;
+}
+
+.btn-reject {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.btn-reject:hover {
+    background: #fee2e2;
+}
+
+.btn-edit {
+    background: var(--bg-3);
+    color: var(--purple);
+}
+
+.btn-edit:hover {
+    background: var(--bg-2);
+}
+
+.btn-ban {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.btn-ban:hover {
+    background: #fee2e2;
+}
+
+.btn-unban {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.btn-unban:hover {
+    background: #d1fae5;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-2);
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: var(--bg-3);
+    color: var(--text);
+}
+
+.modal-body .form-group {
+    margin-bottom: 14px;
+}
+
+.modal-body .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 6px;
+}
+
+.modal-body .form-group input,
+.modal-body .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: var(--font);
+    background: var(--bg-2);
+    color: var(--text);
+    outline: none;
+}
+
+.modal-body .form-group input:focus,
+.modal-body .form-group select:focus {
+    border-color: var(--purple);
+}
+
+.btn-modal {
+    width: 100%;
+    padding: 12px;
+    background: var(--grad);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    margin-top: 8px;
+    transition: 0.2s;
+}
+
+.btn-modal:hover {
+    box-shadow: 0 0 16px var(--glow-1);
+}
+
+@media (max-width: 768px) {
+    .stat-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+}

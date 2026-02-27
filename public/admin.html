@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin · JasaOTP</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<body>
+    <div class="dash">
+        <!-- Sidebar -->
+        <aside class="sidebar admin-sb" id="sidebar">
+            <a href="/" class="sb-logo">
+                <svg width="24" height="24" viewBox="0 0 32 32">
+                    <rect width="32" height="32" rx="8" fill="url(#lg)" /><text x="16" y="23" text-anchor="middle"
+                        fill="white" font-family="Arial" font-weight="900" font-size="18">J</text>
+                    <defs>
+                        <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#8B5CF6" />
+                            <stop offset="100%" stop-color="#EC4899" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>JasaOTP</span>
+            </a>
+            <div class="admin-badge">Admin Panel</div>
+            <nav class="sb-nav">
+                <a href="#" class="sb-link active" data-section="overview">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                    </svg>
+                    Overview
+                </a>
+                <a href="#" class="sb-link" data-section="users">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    User
+                </a>
+                <a href="#" class="sb-link" data-section="orders">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    Order
+                </a>
+                <a href="#" class="sb-link" data-section="deposits">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                    Deposit
+                </a>
+                <a href="#" class="sb-link" data-section="services">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    Layanan
+                </a>
+            </nav>
+            <div class="sb-bottom">
+                <button class="sb-logout" id="adminLogout">Keluar Admin</button>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+            <header class="topbar">
+                <button class="topbar-menu" id="sidebarToggle"><span></span><span></span></button>
+                <h2 class="topbar-title" id="pageTitle">Overview</h2>
+                <div class="admin-indicator">🔒 Admin</div>
+            </header>
+
+            <!-- OVERVIEW -->
+            <section class="panel" id="panelOverview">
+                <div class="stat-grid stat-grid-4">
+                    <div class="stat-card sc-purple">
+                        <span class="stat-label">Total User</span>
+                        <span class="stat-val" id="statUsers">156</span>
+                    </div>
+                    <div class="stat-card sc-pink">
+                        <span class="stat-label">Total Order</span>
+                        <span class="stat-val" id="statOrders">1.284</span>
+                    </div>
+                    <div class="stat-card sc-teal">
+                        <span class="stat-label">Pendapatan</span>
+                        <span class="stat-val" id="statRevenue">Rp 4.2 jt</span>
+                    </div>
+                    <div class="stat-card sc-orange">
+                        <span class="stat-label">OTP Sukses</span>
+                        <span class="stat-val" id="statSuccess">89%</span>
+                    </div>
+                </div>
+
+                <div class="admin-grid">
+                    <div class="card">
+                        <h3 class="card-title">Order Terbaru</h3>
+                        <div class="table-wrap">
+                            <table class="tbl">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Layanan</th>
+                                        <th>Harga</th>
+                                        <th>Status</th>
+                                        <th>Waktu</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentAdminOrders"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">User Terbaru</h3>
+                        <div class="table-wrap">
+                            <table class="tbl">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Email</th>
+                                        <th>Saldo</th>
+                                        <th>Bergabung</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentAdminUsers"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- USERS -->
+            <section class="panel hidden" id="panelUsers">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Manajemen User</h3>
+                        <div class="card-actions">
+                            <input type="text" class="search-input" id="searchUser" placeholder="Cari user...">
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nama</th>
+                                    <th>Email</th>
+                                    <th>Saldo</th>
+                                    <th>Order</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ORDERS -->
+            <section class="panel hidden" id="panelOrders">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Semua Order</h3>
+                        <select class="filter-select" id="filterOrderStatus">
+                            <option value="all">Semua Status</option>
+                            <option value="success">Sukses</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Gagal</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>User</th>
+                                    <th>Layanan</th>
+                                    <th>Negara</th>
+                                    <th>Nomor</th>
+                                    <th>OTP</th>
+                                    <th>Harga</th>
+                                    <th>Status</th>
+                                    <th>Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DEPOSITS -->
+            <section class="panel hidden" id="panelDeposits">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Deposit Masuk</h3>
+                        <select class="filter-select" id="filterDepositStatus">
+                            <option value="all">Semua</option>
+                            <option value="pending">Menunggu</option>
+                            <option value="success">Berhasil</option>
+                            <option value="rejected">Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>User</th>
+                                    <th>Jumlah</th>
+                                    <th>Metode</th>
+                                    <th>Status</th>
+                                    <th>Waktu</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="depositsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SERVICES -->
+            <section class="panel hidden" id="panelServices">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Kelola Layanan & Harga</h3>
+                        <button class="btn-add" id="btnAddService">+ Tambah Layanan</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Layanan</th>
+                                    <th>Negara</th>
+                                    <th>Harga</th>
+                                    <th>Stok</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Modal</h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+
+</html>
