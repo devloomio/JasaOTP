@@ -37,6 +37,21 @@ async function initDB() {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
         `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS order_history (
+                id SERIAL PRIMARY KEY,
+                user_email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+                order_id VARCHAR(100) NOT NULL,
+                service VARCHAR(100),
+                country VARCHAR(100),
+                phone VARCHAR(50),
+                otp VARCHAR(20) DEFAULT '-',
+                status VARCHAR(20) DEFAULT 'pending',
+                server VARCHAR(10) DEFAULT 'v2',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+        `);
         console.log('✅ Database connected & tabel siap');
     } catch (err) {
         console.error('❌ Database error:', err.message);
@@ -436,6 +451,70 @@ app.post('/api/order/:id/cancel', requireAuth, async (req, res) => {
     }
     const result = await providerRequest('cancel.php', { id }, server);
     res.json(result);
+});
+
+// ============================================
+// Order History API (Neon DB)
+// ============================================
+
+// GET /api/orders — ambil riwayat order user
+app.get('/api/orders', requireAuth, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, orders: [] });
+        const { rows } = await pool.query(
+            'SELECT order_id, service, country, phone, otp, status, server, created_at, updated_at FROM order_history WHERE user_email = $1 ORDER BY created_at DESC LIMIT 100',
+            [req.userEmail]
+        );
+        const orders = rows.map(r => ({
+            id: r.order_id,
+            service: r.service,
+            country: r.country,
+            number: r.phone,
+            otp: r.otp || '-',
+            status: r.status,
+            server: r.server,
+            time: new Date(r.created_at).toLocaleString('id-ID'),
+        }));
+        res.json({ success: true, orders });
+    } catch (err) {
+        console.error('Get orders error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat riwayat' });
+    }
+});
+
+// POST /api/orders — simpan order baru
+app.post('/api/orders', requireAuth, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true });
+        const { order_id, service, country, phone, status, server } = req.body;
+        if (!order_id) return res.status(400).json({ success: false, message: 'order_id diperlukan' });
+        await pool.query(
+            'INSERT INTO order_history (user_email, order_id, service, country, phone, status, server) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [req.userEmail, order_id, service || '', country || '', phone || '', status || 'pending', server || 'v2']
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Save order error:', err);
+        res.status(500).json({ success: false, message: 'Gagal menyimpan order' });
+    }
+});
+
+// PUT /api/orders/:orderId — update status order
+app.put('/api/orders/:orderId', requireAuth, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true });
+        const { orderId } = req.params;
+        const { status, otp } = req.body;
+        if (!status) return res.status(400).json({ success: false, message: 'status diperlukan' });
+        await pool.query(
+            'UPDATE order_history SET status = $1, otp = COALESCE($2, otp), updated_at = NOW() WHERE order_id = $3 AND user_email = $4',
+            [status, otp || null, orderId, req.userEmail]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Update order error:', err);
+        res.status(500).json({ success: false, message: 'Gagal update order' });
+    }
 });
 
 // ============================================

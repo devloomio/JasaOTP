@@ -38,6 +38,23 @@ async function setup() {
     `);
     console.log('✅ Tabel users dibuat');
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS order_history (
+            id SERIAL PRIMARY KEY,
+            user_email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+            order_id VARCHAR(100) NOT NULL,
+            service VARCHAR(100),
+            country VARCHAR(100),
+            phone VARCHAR(50),
+            otp VARCHAR(20) DEFAULT '-',
+            status VARCHAR(20) DEFAULT 'pending',
+            server VARCHAR(10) DEFAULT 'v2',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `);
+    console.log('✅ Tabel order_history dibuat');
+
     // Cek apakah sudah ada admin
     const { rows } = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
     if (parseInt(rows[0].count) === 0) {

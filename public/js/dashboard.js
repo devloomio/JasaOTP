@@ -87,7 +87,7 @@ if (user) applyUser();
 // State
 // ============================================
 let balance = 0;
-let orders = JSON.parse(localStorage.getItem('jasaotp_orders') || '[]');
+let orders = [];
 let deposits = JSON.parse(localStorage.getItem('jasaotp_deposits') || '[]');
 let currentServer = 'v2';      // 'v1' or 'v2'
 let currentServerLabel = '';    // '🐯 Harimau' etc
@@ -100,9 +100,44 @@ let otpPollTimer = null;
 let countdownTimer = null;      // global 20-min countdown interval
 let cancelDelayTimer = null;    // global 3-min cancel delay interval
 
-function saveOrders() {
-    try { localStorage.setItem('jasaotp_orders', JSON.stringify(orders.slice(0, 100))); } catch (e) { }
+// Save/load orders from Neon DB
+async function loadOrdersFromDB() {
+    try {
+        const data = await api('/api/orders');
+        if (data.success && Array.isArray(data.orders)) {
+            orders = data.orders;
+        }
+    } catch (e) { console.error('Load orders error:', e); }
+    updateStats();
+    renderOrders('recentOrders', false);
+    renderOrders('historyOrders', true);
 }
+
+async function saveOrderToDB(order) {
+    try {
+        await api('/api/orders', {
+            method: 'POST',
+            body: JSON.stringify({
+                order_id: order.id,
+                service: order.service,
+                country: order.country,
+                phone: order.number,
+                status: order.status || 'pending',
+                server: currentServer,
+            }),
+        });
+    } catch (e) { console.error('Save order error:', e); }
+}
+
+async function updateOrderInDB(orderId, status, otp) {
+    try {
+        await api(`/api/orders/${orderId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status, otp }),
+        });
+    } catch (e) { console.error('Update order error:', e); }
+}
+
 function saveDeposits() {
     try { localStorage.setItem('jasaotp_deposits', JSON.stringify(deposits.slice(0, 100))); } catch (e) { }
 }
@@ -349,7 +384,7 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
             orders[cancelIdx].otp = '-';
             orders[cancelIdx].time = new Date().toLocaleString('id-ID');
         }
-        saveOrders();
+        updateOrderInDB(activeOrder.id, 'failed', '-');
         updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
         await loadBalance();
     } catch (e) {
@@ -392,8 +427,9 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         activeOrder = { id: orderId, number: phone, service: selectedService.name, country: selectedCountry.name };
 
         // Immediately save order as pending so it appears in history
-        orders.unshift({ id: orderId, service: selectedService.name, country: selectedCountry.name, number: phone, otp: '-', status: 'pending', time: new Date().toLocaleString('id-ID') });
-        saveOrders();
+        const newOrder = { id: orderId, service: selectedService.name, country: selectedCountry.name, number: phone, otp: '-', status: 'pending', time: new Date().toLocaleString('id-ID') };
+        orders.unshift(newOrder);
+        saveOrderToDB(newOrder);
         updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
 
         // Show OTP panel
@@ -528,7 +564,7 @@ function startOTPPolling(orderId) {
                     orders[successIdx].status = 'success';
                     orders[successIdx].time = new Date().toLocaleString('id-ID');
                 }
-                saveOrders();
+                updateOrderInDB(orderId, 'success', code);
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
                 stopCountdownTimers();
@@ -545,7 +581,7 @@ function startOTPPolling(orderId) {
                     orders[failIdx].status = 'failed';
                     orders[failIdx].time = new Date().toLocaleString('id-ID');
                 }
-                saveOrders();
+                updateOrderInDB(orderId, 'failed');
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
                 stopCountdownTimers();
@@ -624,3 +660,4 @@ updateStats();
 renderOrders('recentOrders', false);
 renderOrders('historyOrders', true);
 renderDeposits();
+loadOrdersFromDB();
