@@ -247,11 +247,8 @@ async function loadCountries() {
     else if (Array.isArray(data)) list = data;
 
     if (list.length === 0) {
-        list = [
-            { id_negara: 0, nama_negara: 'rusia' },
-            { id_negara: 6, nama_negara: 'indonesia' },
-            { id_negara: 4, nama_negara: 'filipina' },
-        ];
+        grid.innerHTML = '<div class="loading-spinner">Gagal memuat negara. Coba lagi.</div>';
+        return;
     }
 
     countriesData = list.map(c => ({
