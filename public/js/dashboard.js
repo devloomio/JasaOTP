@@ -454,34 +454,36 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         // Clear any previous timers before starting new ones
         stopCountdownTimers();
 
-        // Disable cancel for 3 minutes
+        // Disable cancel for 3 minutes (timestamp-based to survive tab switch)
         const cancelBtn = document.getElementById('btnCancelOrder');
         cancelBtn.disabled = true;
-        let cancelCountdown = 180;
-        cancelBtn.textContent = `✕ Batal (${Math.floor(cancelCountdown / 60)}:${(cancelCountdown % 60).toString().padStart(2, '0')})`;
-        cancelDelayTimer = setInterval(() => {
-            cancelCountdown--;
-            if (cancelCountdown <= 0) {
+        const cancelEndTime = Date.now() + 180 * 1000;
+        function updateCancelBtn() {
+            const left = Math.max(0, Math.ceil((cancelEndTime - Date.now()) / 1000));
+            if (left <= 0) {
                 clearInterval(cancelDelayTimer);
                 cancelDelayTimer = null;
                 cancelBtn.disabled = false;
                 cancelBtn.textContent = '✕ Batalkan Order';
             } else {
-                cancelBtn.textContent = `✕ Batal (${Math.floor(cancelCountdown / 60)}:${(cancelCountdown % 60).toString().padStart(2, '0')})`;
+                cancelBtn.textContent = `✕ Batal (${Math.floor(left / 60)}:${(left % 60).toString().padStart(2, '0')})`;
             }
-        }, 1000);
+        }
+        updateCancelBtn();
+        cancelDelayTimer = setInterval(updateCancelBtn, 1000);
 
-        // Timer 20 min
-        let remaining = 1200;
+        // Timer 20 min (timestamp-based to survive tab switch)
+        const timerEndTime = Date.now() + 1200 * 1000;
         const timerEl = document.getElementById('otpTimer');
-        timerEl.textContent = '20:00';
-        countdownTimer = setInterval(() => {
-            remaining--;
-            const m = Math.floor(remaining / 60).toString().padStart(2, '0');
-            const s = (remaining % 60).toString().padStart(2, '0');
+        function updateMainTimer() {
+            const left = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+            const m = Math.floor(left / 60).toString().padStart(2, '0');
+            const s = (left % 60).toString().padStart(2, '0');
             timerEl.textContent = `${m}:${s}`;
-            if (remaining <= 0) { clearInterval(countdownTimer); countdownTimer = null; stopOTPPolling(); }
-        }, 1000);
+            if (left <= 0) { clearInterval(countdownTimer); countdownTimer = null; stopOTPPolling(); }
+        }
+        updateMainTimer();
+        countdownTimer = setInterval(updateMainTimer, 1000);
 
         await loadBalance();
     } catch (e) {
