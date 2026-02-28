@@ -191,8 +191,8 @@ function updateBalance() {
 // Navigation
 // ============================================
 const links = document.querySelectorAll('.sb-link');
-const panels = { beranda: 'panelBeranda', beli: 'panelBeli', riwayat: 'panelRiwayat', deposit: 'panelDeposit' };
-const titles = { beranda: 'Beranda', beli: 'Beli Nomor', riwayat: 'Riwayat', deposit: 'Deposit' };
+const panels = { beranda: 'panelBeranda', beli: 'panelBeli', deposit: 'panelDeposit' };
+const titles = { beranda: 'Beranda', beli: 'Order', deposit: 'Deposit' };
 
 function switchSection(section) {
     Object.values(panels).forEach(id => document.getElementById(id).classList.add('hidden'));
