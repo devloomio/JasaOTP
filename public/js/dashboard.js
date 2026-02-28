@@ -342,7 +342,13 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
         document.querySelector('.otp-pulse').classList.add('success');
         document.querySelector('.otp-pulse').style.background = '#dc2626';
         document.querySelector('.otp-result-header h3').textContent = '❌ Order Dibatalkan';
-        orders.unshift({ id: activeOrder.id, service: activeOrder.service, country: activeOrder.country, number: activeOrder.number, otp: '-', status: 'failed', time: new Date().toLocaleString('id-ID') });
+        // Update existing pending order instead of adding duplicate
+        const cancelIdx = orders.findIndex(o => o.id === activeOrder.id);
+        if (cancelIdx !== -1) {
+            orders[cancelIdx].status = 'failed';
+            orders[cancelIdx].otp = '-';
+            orders[cancelIdx].time = new Date().toLocaleString('id-ID');
+        }
         saveOrders();
         updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
         await loadBalance();
@@ -384,6 +390,11 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         const phone = result.number || result.phone || result.nomor || result.data?.number || '';
 
         activeOrder = { id: orderId, number: phone, service: selectedService.name, country: selectedCountry.name };
+
+        // Immediately save order as pending so it appears in history
+        orders.unshift({ id: orderId, service: selectedService.name, country: selectedCountry.name, number: phone, otp: '-', status: 'pending', time: new Date().toLocaleString('id-ID') });
+        saveOrders();
+        updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
 
         // Show OTP panel
         document.getElementById('confirmCard').classList.add('hidden');
@@ -510,7 +521,13 @@ function startOTPPolling(orderId) {
 
                 playNotifSound();
 
-                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: code, status: 'success', time: new Date().toLocaleString('id-ID') });
+                // Update existing pending order instead of adding duplicate
+                const successIdx = orders.findIndex(o => o.id === orderId);
+                if (successIdx !== -1) {
+                    orders[successIdx].otp = code;
+                    orders[successIdx].status = 'success';
+                    orders[successIdx].time = new Date().toLocaleString('id-ID');
+                }
                 saveOrders();
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
@@ -522,7 +539,12 @@ function startOTPPolling(orderId) {
                 document.getElementById('otpStatus').textContent = 'Gagal';
                 document.getElementById('otpStatus').style.background = '#fef2f2';
                 document.getElementById('otpStatus').style.color = '#dc2626';
-                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: '-', status: 'failed', time: new Date().toLocaleString('id-ID') });
+                // Update existing pending order instead of adding duplicate
+                const failIdx = orders.findIndex(o => o.id === orderId);
+                if (failIdx !== -1) {
+                    orders[failIdx].status = 'failed';
+                    orders[failIdx].time = new Date().toLocaleString('id-ID');
+                }
                 saveOrders();
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
