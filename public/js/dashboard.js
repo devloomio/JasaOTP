@@ -689,19 +689,18 @@ depositAmount.addEventListener('change', () => { btnDeposit.disabled = !depositA
 btnDeposit.addEventListener('click', () => {
     const amount = parseInt(depositAmount.value);
     if (!amount) return;
-    balance += amount;
-    updateBalance();
+    const method = document.querySelector('input[name="payment"]:checked').value.toUpperCase();
     deposits.unshift({
         date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
         amount: rp(amount),
-        method: document.querySelector('input[name="payment"]:checked').value.toUpperCase(),
-        status: 'success'
+        method: method,
+        status: 'pending'
     });
     saveDeposits();
     renderDeposits();
     depositAmount.value = '';
     btnDeposit.disabled = true;
-    showToast('Deposit berhasil ditambahkan!', 'success');
+    showToast(`Deposit ${rp(amount)} via ${method} sedang diproses. Hubungi admin untuk konfirmasi.`, 'info');
 });
 
 // ============================================
