@@ -47,8 +47,8 @@ if (user) applyUser();
 // State
 // ============================================
 let balance = 0;
-let orders = [];
-let deposits = [];
+let orders = JSON.parse(localStorage.getItem('jasaotp_orders') || '[]');
+let deposits = JSON.parse(localStorage.getItem('jasaotp_deposits') || '[]');
 let currentServer = 'v2';      // 'v1' or 'v2'
 let currentServerLabel = '';    // '🐯 Harimau' etc
 let countriesData = [];
@@ -57,6 +57,15 @@ let selectedCountry = null;
 let selectedService = null;
 let activeOrder = null;
 let otpPollTimer = null;
+let countdownTimer = null;      // global 20-min countdown interval
+let cancelDelayTimer = null;    // global 3-min cancel delay interval
+
+function saveOrders() {
+    try { localStorage.setItem('jasaotp_orders', JSON.stringify(orders.slice(0, 100))); } catch (e) { }
+}
+function saveDeposits() {
+    try { localStorage.setItem('jasaotp_deposits', JSON.stringify(deposits.slice(0, 100))); } catch (e) { }
+}
 
 function rp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
 
@@ -268,6 +277,7 @@ document.getElementById('backToStep2').addEventListener('click', () => {
 });
 document.getElementById('btnNewOrder')?.addEventListener('click', () => {
     stopOTPPolling();
+    stopCountdownTimers();
     document.getElementById('confirmCard').classList.remove('hidden');
     document.getElementById('otpResult').classList.add('hidden');
     setStep(1);
@@ -285,13 +295,15 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
             body: JSON.stringify({ server: currentServer }),
         });
         stopOTPPolling();
+        stopCountdownTimers();
         document.getElementById('otpStatus').textContent = 'Dibatalkan';
         document.getElementById('otpStatus').style.background = '#fef2f2';
         document.getElementById('otpStatus').style.color = '#dc2626';
         document.querySelector('.otp-pulse').classList.add('success');
         document.querySelector('.otp-pulse').style.background = '#dc2626';
         document.querySelector('.otp-result-header h3').textContent = '❌ Order Dibatalkan';
-        orders.unshift({ id: activeOrder.id, service: activeOrder.service, country: activeOrder.country, number: activeOrder.number, otp: '-', status: 'failed', time: 'Dibatalkan' });
+        orders.unshift({ id: activeOrder.id, service: activeOrder.service, country: activeOrder.country, number: activeOrder.number, otp: '-', status: 'failed', time: new Date().toLocaleString('id-ID') });
+        saveOrders();
         updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
         await loadBalance();
     } catch (e) {
@@ -352,15 +364,19 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
 
         if (orderId) startOTPPolling(orderId);
 
+        // Clear any previous timers before starting new ones
+        stopCountdownTimers();
+
         // Disable cancel for 3 minutes
         const cancelBtn = document.getElementById('btnCancelOrder');
         cancelBtn.disabled = true;
         let cancelCountdown = 180;
         cancelBtn.textContent = `✕ Batal (${Math.floor(cancelCountdown / 60)}:${(cancelCountdown % 60).toString().padStart(2, '0')})`;
-        const cancelTimer = setInterval(() => {
+        cancelDelayTimer = setInterval(() => {
             cancelCountdown--;
             if (cancelCountdown <= 0) {
-                clearInterval(cancelTimer);
+                clearInterval(cancelDelayTimer);
+                cancelDelayTimer = null;
                 cancelBtn.disabled = false;
                 cancelBtn.textContent = '✕ Batalkan Order';
             } else {
@@ -371,12 +387,13 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         // Timer 20 min
         let remaining = 1200;
         const timerEl = document.getElementById('otpTimer');
-        const timerInterval = setInterval(() => {
+        timerEl.textContent = '20:00';
+        countdownTimer = setInterval(() => {
             remaining--;
             const m = Math.floor(remaining / 60).toString().padStart(2, '0');
             const s = (remaining % 60).toString().padStart(2, '0');
             timerEl.textContent = `${m}:${s}`;
-            if (remaining <= 0) { clearInterval(timerInterval); stopOTPPolling(); }
+            if (remaining <= 0) { clearInterval(countdownTimer); countdownTimer = null; stopOTPPolling(); }
         }, 1000);
 
         await loadBalance();
@@ -453,9 +470,11 @@ function startOTPPolling(orderId) {
 
                 playNotifSound();
 
-                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: code, status: 'success', time: 'Baru saja' });
+                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: code, status: 'success', time: new Date().toLocaleString('id-ID') });
+                saveOrders();
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
+                stopCountdownTimers();
             }
 
             const status = result.status || result.data?.status;
@@ -463,14 +482,20 @@ function startOTPPolling(orderId) {
                 document.getElementById('otpStatus').textContent = 'Gagal';
                 document.getElementById('otpStatus').style.background = '#fef2f2';
                 document.getElementById('otpStatus').style.color = '#dc2626';
-                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: '-', status: 'failed', time: 'Baru saja' });
+                orders.unshift({ id: orderId, service: activeOrder?.service || '', country: activeOrder?.country || '', number: activeOrder?.number || '', otp: '-', status: 'failed', time: new Date().toLocaleString('id-ID') });
+                saveOrders();
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
+                stopCountdownTimers();
             }
         } catch (e) { console.error('Poll error:', e); }
     }, 3000);
 }
 function stopOTPPolling() { if (otpPollTimer) { clearInterval(otpPollTimer); otpPollTimer = null; } }
+function stopCountdownTimers() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    if (cancelDelayTimer) { clearInterval(cancelDelayTimer); cancelDelayTimer = null; }
+}
 
 // ============================================
 // Stats & Render
@@ -522,6 +547,7 @@ btnDeposit.addEventListener('click', () => {
         method: document.querySelector('input[name="payment"]:checked').value.toUpperCase(),
         status: 'success'
     });
+    saveDeposits();
     renderDeposits();
     depositAmount.value = '';
     btnDeposit.disabled = true;
