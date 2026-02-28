@@ -20,6 +20,46 @@ function playNotifSound() {
 }
 
 // ============================================
+// Toast Notification
+// ============================================
+let toastTimer = null;
+function showToast(message, type = 'info', duration = 3500) {
+    // Remove existing toast
+    const old = document.getElementById('toastOverlay');
+    if (old) { old.remove(); clearTimeout(toastTimer); }
+
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const titles = { success: 'Berhasil!', error: 'Gagal!', info: 'Info' };
+
+    const overlay = document.createElement('div');
+    overlay.id = 'toastOverlay';
+    overlay.className = 'toast-overlay';
+    overlay.innerHTML = `
+        <div class="toast-box toast-${type}">
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-title">${titles[type] || titles.info}</div>
+            <div class="toast-msg">${message}</div>
+            <button class="toast-btn" id="toastDismiss">OK</button>
+            <div class="toast-progress" style="animation-duration:${duration}ms"></div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Animate in
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    function dismiss() {
+        clearTimeout(toastTimer);
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.remove(), 350);
+    }
+
+    overlay.querySelector('#toastDismiss').addEventListener('click', dismiss);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) dismiss(); });
+    toastTimer = setTimeout(dismiss, duration);
+}
+
+// ============================================
 // Auth Check
 // ============================================
 let user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -307,7 +347,7 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
         updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
         await loadBalance();
     } catch (e) {
-        alert('Gagal membatalkan: ' + e.message);
+        showToast('Gagal membatalkan: ' + e.message, 'error');
     }
     btn.disabled = false;
     btn.textContent = '✕ Batalkan Order';
@@ -334,7 +374,7 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         });
 
         if (result.success === false || result.error) {
-            alert(result.error || result.message || 'Gagal membeli nomor.');
+            showToast(result.error || result.message || 'Gagal membeli nomor.', 'error');
             btn.disabled = false;
             btn.textContent = '🛒 Beli Nomor';
             return;
@@ -398,7 +438,7 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
 
         await loadBalance();
     } catch (e) {
-        alert('Error: ' + e.message);
+        showToast('Terjadi kesalahan: ' + e.message, 'error');
     }
 
     btn.disabled = false;
@@ -551,7 +591,7 @@ btnDeposit.addEventListener('click', () => {
     renderDeposits();
     depositAmount.value = '';
     btnDeposit.disabled = true;
-    alert('Deposit berhasil!');
+    showToast('Deposit berhasil ditambahkan!', 'success');
 });
 
 // ============================================
