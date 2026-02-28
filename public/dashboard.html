@@ -119,137 +119,15 @@
                 </div>
             </section>
 
-            <!-- BELI NOMOR -->
+            <!-- ORDER -->
             <section class="panel hidden" id="panelBeli">
-                <!-- Step Indicator -->
-                <div class="buy-steps">
-                    <div class="step active" id="step1indicator">
-                        <span class="step-num">1</span>
-                        <span class="step-label">Server</span>
+                <!-- Riwayat Order (shown first) -->
+                <div class="card">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                        <h3 class="card-title" style="margin:0">📋 Riwayat Order</h3>
+                        <button class="btn-buy-gradient" id="btnStartBuy" style="padding:8px 20px;font-size:0.85rem">🛒
+                            Beli Nomor Baru</button>
                     </div>
-                    <div class="step-line"></div>
-                    <div class="step" id="step2indicator">
-                        <span class="step-num">2</span>
-                        <span class="step-label">Negara</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step" id="step3indicator">
-                        <span class="step-num">3</span>
-                        <span class="step-label">Layanan</span>
-                    </div>
-                </div>
-
-                <!-- Step 1: Pilih Server -->
-                <div class="buy-step-panel" id="buyStep1">
-                    <div class="card buy-card">
-                        <h3 style="margin-bottom:16px">�️ Pilih Server</h3>
-                        <div class="server-cards" id="serverPickCards">
-                            <div class="server-card" data-server="v2">
-                                <span class="srv-title">🐯 Harimau</span>
-                                <span class="srv-stock">Server Utama</span>
-                            </div>
-                            <div class="server-card" data-server="v1">
-                                <span class="srv-title">🦅 Elang</span>
-                                <span class="srv-stock">Server Alternatif</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: Pilih Negara -->
-                <div class="buy-step-panel hidden" id="buyStep2">
-                    <div class="card buy-card">
-                        <div class="buy-header">
-                            <button class="back-btn" id="backToStep1">← Ganti Server</button>
-                            <span class="selected-badge" id="selectedServerBadge">-</span>
-                        </div>
-                        <div class="search-box">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <input type="text" id="searchCountry" placeholder="Cari negara..." autocomplete="off">
-                        </div>
-                        <div class="country-grid" id="countryGrid">
-                            <div class="loading-spinner">Memuat negara...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Layanan + Konfirmasi + OTP -->
-                <div class="buy-step-panel hidden" id="buyStep3">
-                    <div class="card buy-card" id="confirmCard">
-                        <div class="buy-header">
-                            <button class="back-btn" id="backToStep2">← Ganti Negara</button>
-                            <div class="selected-badges">
-                                <span class="selected-badge" id="confirmServerBadge">-</span>
-                                <span class="selected-badge" id="confirmCountryBadge">-</span>
-                            </div>
-                        </div>
-                        <div class="search-box">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <input type="text" id="searchService" placeholder="Cari layanan (WhatsApp, Telegram)..."
-                                autocomplete="off">
-                        </div>
-                        <div class="service-grid" id="serviceGrid">
-                            <div class="loading-spinner">Memuat layanan...</div>
-                        </div>
-                        <div class="confirm-details" id="confirmDetails" style="display:none">
-                            <div class="confirm-row"><span>Layanan</span><strong id="confirmService">-</strong></div>
-                            <div class="confirm-row"><span>Negara</span><strong id="confirmCountry">-</strong></div>
-                            <div class="confirm-row"><span>Server</span><strong id="confirmServer">-</strong></div>
-                            <div class="confirm-row highlight"><span>Harga</span><strong id="confirmPrice">Rp 0</strong>
-                            </div>
-                        </div>
-                        <button class="btn-buy-gradient" id="btnBuy" disabled style="margin-top:16px">🛒 Beli
-                            Nomor</button>
-                    </div>
-
-                    <div class="card buy-card hidden" id="otpResult">
-                        <div class="otp-result-header">
-                            <div class="otp-pulse"></div>
-                            <h3>📱 Menunggu OTP</h3>
-                        </div>
-                        <div class="otp-info-grid">
-                            <div class="otp-info-item"><span class="otp-info-label">Nomor</span><span
-                                    style="display:flex;align-items:center;gap:6px"><span class="otp-info-value mono"
-                                        id="otpNumber">-</span><button class="btn-copy-num" id="btnCopyNum"
-                                        title="Salin nomor">📋</button></span></div>
-                            <div class="otp-info-item"><span class="otp-info-label">Layanan</span><span
-                                    class="otp-info-value" id="otpService">-</span></div>
-                            <div class="otp-info-item"><span class="otp-info-label">Status</span><span
-                                    class="otp-info-value otp-status-badge" id="otpStatus">Menunggu...</span></div>
-                            <div class="otp-info-item"><span class="otp-info-label">Sisa Waktu</span><span
-                                    class="otp-info-value timer-value" id="otpTimer">20:00</span></div>
-                        </div>
-                        <div class="otp-code-section">
-                            <p class="otp-code-label">KODE OTP</p>
-                            <div class="otp-code-digits" id="otpCode">
-                                <span>-</span><span>-</span><span>-</span><span>-</span><span>-</span><span>-</span>
-                            </div>
-                            <button class="btn-copy-otp" id="btnCopy">📋 Salin Kode</button>
-                        </div>
-                        <div style="display:flex;gap:8px;margin-top:8px">
-                            <button class="btn-new-order" id="btnCancelOrder"
-                                style="border-color:#dc2626;color:#dc2626;flex:1">✕ Batalkan Order</button>
-                            <button class="btn-new-order" id="btnNewOrder" style="flex:1">+ Beli Nomor Baru</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hidden compat -->
-                <select id="selectService" style="display:none"></select>
-                <select id="selectCountry" style="display:none"></select>
-                <div id="buyPrice" style="display:none"><span id="priceAmount"></span></div>
-
-                <!-- Riwayat Order (integrated) -->
-                <div class="card" style="margin-top:20px">
-                    <h3 class="card-title">📋 Riwayat Order</h3>
                     <div class="table-wrap">
                         <table class="tbl">
                             <thead>
@@ -271,8 +149,128 @@
                         </table>
                     </div>
                 </div>
-            </section>
 
+                <!-- Buy Flow (hidden by default) -->
+                <div id="buyFlowWrapper" class="hidden" style="margin-top:20px">
+                    <div class="buy-steps">
+                        <div class="step active" id="step1indicator">
+                            <span class="step-num">1</span>
+                            <span class="step-label">Server</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step" id="step2indicator">
+                            <span class="step-num">2</span>
+                            <span class="step-label">Negara</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step" id="step3indicator">
+                            <span class="step-num">3</span>
+                            <span class="step-label">Layanan</span>
+                        </div>
+                    </div>
+                    <div class="buy-step-panel" id="buyStep1">
+                        <div class="card buy-card">
+                            <h3 style="margin-bottom:16px">🖥️ Pilih Server</h3>
+                            <div class="server-cards" id="serverPickCards">
+                                <div class="server-card" data-server="v2">
+                                    <span class="srv-title">🐯 Harimau</span>
+                                    <span class="srv-stock">Server Utama</span>
+                                </div>
+                                <div class="server-card" data-server="v1">
+                                    <span class="srv-title">🦅 Elang</span>
+                                    <span class="srv-stock">Server Alternatif</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buy-step-panel hidden" id="buyStep2">
+                        <div class="card buy-card">
+                            <div class="buy-header">
+                                <button class="back-btn" id="backToStep1">← Ganti Server</button>
+                                <span class="selected-badge" id="selectedServerBadge">-</span>
+                            </div>
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input type="text" id="searchCountry" placeholder="Cari negara..." autocomplete="off">
+                            </div>
+                            <div class="country-grid" id="countryGrid">
+                                <div class="loading-spinner">Memuat negara...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buy-step-panel hidden" id="buyStep3">
+                        <div class="card buy-card" id="confirmCard">
+                            <div class="buy-header">
+                                <button class="back-btn" id="backToStep2">← Ganti Negara</button>
+                                <div class="selected-badges">
+                                    <span class="selected-badge" id="confirmServerBadge">-</span>
+                                    <span class="selected-badge" id="confirmCountryBadge">-</span>
+                                </div>
+                            </div>
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input type="text" id="searchService" placeholder="Cari layanan (WhatsApp, Telegram)..."
+                                    autocomplete="off">
+                            </div>
+                            <div class="service-grid" id="serviceGrid">
+                                <div class="loading-spinner">Memuat layanan...</div>
+                            </div>
+                            <div class="confirm-details" id="confirmDetails" style="display:none">
+                                <div class="confirm-row"><span>Layanan</span><strong id="confirmService">-</strong>
+                                </div>
+                                <div class="confirm-row"><span>Negara</span><strong id="confirmCountry">-</strong></div>
+                                <div class="confirm-row"><span>Server</span><strong id="confirmServer">-</strong></div>
+                                <div class="confirm-row highlight"><span>Harga</span><strong id="confirmPrice">Rp
+                                        0</strong></div>
+                            </div>
+                            <button class="btn-buy-gradient" id="btnBuy" disabled style="margin-top:16px">🛒 Beli
+                                Nomor</button>
+                        </div>
+                        <div class="card buy-card hidden" id="otpResult">
+                            <div class="otp-result-header">
+                                <div class="otp-pulse"></div>
+                                <h3>📱 Menunggu OTP</h3>
+                            </div>
+                            <div class="otp-info-grid">
+                                <div class="otp-info-item"><span class="otp-info-label">Nomor</span><span
+                                        style="display:flex;align-items:center;gap:6px"><span
+                                            class="otp-info-value mono" id="otpNumber">-</span><button
+                                            class="btn-copy-num" id="btnCopyNum" title="Salin nomor">📋</button></span>
+                                </div>
+                                <div class="otp-info-item"><span class="otp-info-label">Layanan</span><span
+                                        class="otp-info-value" id="otpService">-</span></div>
+                                <div class="otp-info-item"><span class="otp-info-label">Status</span><span
+                                        class="otp-info-value otp-status-badge" id="otpStatus">Menunggu...</span></div>
+                                <div class="otp-info-item"><span class="otp-info-label">Sisa Waktu</span><span
+                                        class="otp-info-value timer-value" id="otpTimer">20:00</span></div>
+                            </div>
+                            <div class="otp-code-section">
+                                <p class="otp-code-label">KODE OTP</p>
+                                <div class="otp-code-digits" id="otpCode">
+                                    <span>-</span><span>-</span><span>-</span><span>-</span><span>-</span><span>-</span>
+                                </div>
+                                <button class="btn-copy-otp" id="btnCopy">📋 Salin Kode</button>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:8px">
+                                <button class="btn-new-order" id="btnCancelOrder"
+                                    style="border-color:#dc2626;color:#dc2626;flex:1">✕ Batalkan Order</button>
+                                <button class="btn-new-order" id="btnNewOrder" style="flex:1">+ Beli Nomor Baru</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <select id="selectService" style="display:none"></select>
+                <select id="selectCountry" style="display:none"></select>
+                <div id="buyPrice" style="display:none"><span id="priceAmount"></span></div>
+            </section>
             <!-- DEPOSIT -->
             <section class="panel hidden" id="panelDeposit">
                 <div class="card">

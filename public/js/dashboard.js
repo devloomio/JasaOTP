@@ -373,7 +373,13 @@ document.getElementById('btnNewOrder')?.addEventListener('click', () => {
     stopCountdownTimers();
     document.getElementById('confirmCard').classList.remove('hidden');
     document.getElementById('otpResult').classList.add('hidden');
+    document.getElementById('buyFlowWrapper').classList.remove('hidden');
     setStep(1);
+});
+document.getElementById('btnStartBuy')?.addEventListener('click', () => {
+    const wrapper = document.getElementById('buyFlowWrapper');
+    wrapper.classList.remove('hidden');
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 // Cancel order
