@@ -1,4 +1,4 @@
-// Setup database schema untuk JasaOTP
+// Setup database schema untuk PusatOTP
 // Jalankan: node db-setup.js
 
 require('dotenv').config();

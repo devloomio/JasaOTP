@@ -1,4 +1,4 @@
-/* JasaOTP — Auth Handler (Cookie-based) */
+/* PusatOTP — Auth Handler (Cookie-based) */
 
 const errorEl = document.getElementById('authError');
 const loginForm = document.getElementById('loginForm');

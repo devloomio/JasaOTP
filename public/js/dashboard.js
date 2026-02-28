@@ -1,4 +1,4 @@
-/* JasaOTP — Dashboard Logic (Provider API v1+v2) */
+/* PusatOTP — Dashboard Logic (Provider API v1+v2) */
 /* Flow: Server → Negara → Layanan/Konfirmasi → OTP */
 
 // Notification sound (Web Audio API)
@@ -106,7 +106,7 @@ if (user) applyUser();
 // ============================================
 let balance = 0;
 let orders = [];
-let deposits = JSON.parse(localStorage.getItem('jasaotp_deposits') || '[]');
+let deposits = JSON.parse(localStorage.getItem('PusatOTP_deposits') || '[]');
 let currentServer = 'v2';      // 'v1' or 'v2'
 let currentServerLabel = '';    // '🐯 Harimau' etc
 let countriesData = [];
@@ -157,7 +157,7 @@ async function updateOrderInDB(orderId, status, otp) {
 }
 
 function saveDeposits() {
-    try { localStorage.setItem('jasaotp_deposits', JSON.stringify(deposits.slice(0, 100))); } catch (e) { }
+    try { localStorage.setItem('PusatOTP_deposits', JSON.stringify(deposits.slice(0, 100))); } catch (e) { }
 }
 
 function rp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }

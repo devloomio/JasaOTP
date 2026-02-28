@@ -1,7 +1,7 @@
 {
-  "name": "jasaotp",
+  "name": "PusatOTP",
   "version": "1.0.0",
-  "description": "JasaOTP - Layanan Nomor Virtual OTP",
+  "description": "PusatOTP - Layanan Nomor Virtual OTP",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

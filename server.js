@@ -360,8 +360,8 @@ app.get('/api/auth/me', async (req, res) => {
 // OTP Provider API Proxy (v1 + v2)
 // ============================================
 const PROVIDER_KEY = process.env.PROVIDER_API_KEY || '';
-const API_V1 = process.env.PROVIDER_V1_URL || 'https://api.jasaotp.id/v1';
-const API_V2 = process.env.PROVIDER_V2_URL || 'https://api.jasaotp.id/v2';
+const API_V1 = process.env.PROVIDER_V1_URL || 'https://api.PusatOTP.id/v1';
+const API_V2 = process.env.PROVIDER_V2_URL || 'https://api.PusatOTP.id/v2';
 
 function getApiBase(server) {
     return server === 'v1' ? API_V1 : API_V2;
@@ -561,7 +561,7 @@ async function start() {
     }
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 JasaOTP berjalan di http://0.0.0.0:${PORT}`);
+        console.log(`🚀 PusatOTP berjalan di http://0.0.0.0:${PORT}`);
         console.log(`🔒 Security: helmet, rate-limit, bcrypt, httpOnly cookies`);
         console.log(`👑 User pertama yang register otomatis jadi admin`);
     });

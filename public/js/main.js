@@ -1,4 +1,4 @@
-/* JasaOTP — Fresh Interaktif */
+/* PusatOTP — Fresh Interaktif */
 
 // Navbar scroll
 const nav = document.getElementById('nav');

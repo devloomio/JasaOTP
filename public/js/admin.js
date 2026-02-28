@@ -1,4 +1,4 @@
-/* JasaOTP — Admin Panel Logic */
+/* PusatOTP — Admin Panel Logic */
 
 // Server-side auth check (cookie). Jika belum login, server redirect ke /admin/login.
 
