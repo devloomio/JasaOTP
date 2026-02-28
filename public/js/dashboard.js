@@ -510,8 +510,15 @@ document.getElementById('btnCopyNum')?.addEventListener('click', () => {
 
 // Copy OTP
 document.getElementById('btnCopy').addEventListener('click', () => {
-    const code = Array.from(document.getElementById('otpCode').querySelectorAll('span')).map(s => s.textContent).join('');
-    if (code.includes('-')) return;
+    const container = document.getElementById('otpCode');
+    const fullText = container.querySelector('.otp-full-text');
+    let code;
+    if (fullText) {
+        code = fullText.textContent;
+    } else {
+        code = Array.from(container.querySelectorAll('span')).map(s => s.textContent).join('');
+    }
+    if (!code || code === '------') return;
     navigator.clipboard.writeText(code).then(() => {
         const btn = document.getElementById('btnCopy');
         btn.textContent = '✅ Tersalin!';
@@ -522,60 +529,23 @@ document.getElementById('btnCopy').addEventListener('click', () => {
 // ============================================
 // OTP Polling
 // ============================================
+let lastReceivedSms = null; // track last SMS to detect new codes
+let otpReceivedTimeout = null; // 5-min timer after first code received
+
 function startOTPPolling(orderId) {
     stopOTPPolling();
+    lastReceivedSms = null;
+
     otpPollTimer = setInterval(async () => {
         try {
             const result = await api(`/api/order/${orderId}?server=${currentServer}`);
-            let code = null;
 
-            const candidates = [
-                result.sms, result.code, result.otp,
-                result.data?.sms, result.data?.code, result.data?.otp,
-            ];
-            for (const c of candidates) {
-                if (c && typeof c === 'string' && /\d{3,}/.test(c) && !/menunggu|waiting|pending/i.test(c)) {
-                    const match = c.match(/\d{3,}/);
-                    if (match) { code = match[0]; break; }
-                }
-            }
-            if (!code && result.message && /\d{4,8}/.test(result.message) && !/menunggu|waiting|berhasil/i.test(result.message)) {
-                const match = result.message.match(/\d{4,8}/);
-                if (match) code = match[0];
-            }
-
-            if (code) {
-                const digits = document.getElementById('otpCode');
-                digits.classList.add('received');
-                digits.innerHTML = String(code).split('').map(d => `<span>${d}</span>`).join('');
-
-                document.getElementById('otpStatus').textContent = 'Diterima ✓';
-                document.getElementById('otpStatus').style.background = '#ecfdf5';
-                document.getElementById('otpStatus').style.color = '#059669';
-                document.querySelector('.otp-pulse').classList.add('success');
-                document.querySelector('.otp-result-header h3').textContent = '📱 OTP Diterima!';
-
-                playNotifSound();
-
-                // Update existing pending order instead of adding duplicate
-                const successIdx = orders.findIndex(o => o.id === orderId);
-                if (successIdx !== -1) {
-                    orders[successIdx].otp = code;
-                    orders[successIdx].status = 'success';
-                    orders[successIdx].time = new Date().toLocaleString('id-ID');
-                }
-                updateOrderInDB(orderId, 'success', code);
-                updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
-                stopOTPPolling();
-                stopCountdownTimers();
-            }
-
+            // Check if status is failed/cancelled/expired first
             const status = result.status || result.data?.status;
             if (status === 'failed' || status === 'cancelled' || status === 'expired' || status === '3') {
                 document.getElementById('otpStatus').textContent = 'Gagal';
                 document.getElementById('otpStatus').style.background = '#fef2f2';
                 document.getElementById('otpStatus').style.color = '#dc2626';
-                // Update existing pending order instead of adding duplicate
                 const failIdx = orders.findIndex(o => o.id === orderId);
                 if (failIdx !== -1) {
                     orders[failIdx].status = 'failed';
@@ -585,11 +555,75 @@ function startOTPPolling(orderId) {
                 updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
                 stopOTPPolling();
                 stopCountdownTimers();
+                return;
             }
+
+            // Extract raw SMS/OTP from API response (check multiple fields)
+            let smsRaw = null;
+            const candidates = [
+                result.sms, result.code, result.otp,
+                result.data?.sms, result.data?.code, result.data?.otp,
+                result.message,
+            ];
+            for (const c of candidates) {
+                if (c && typeof c === 'string' && c.trim().length > 0) {
+                    smsRaw = c.trim();
+                    break;
+                }
+            }
+
+            // If SMS is still "waiting" / "menunggu" / empty → keep polling
+            if (!smsRaw || /^(menunggu|waiting|pending|Menunggu sms|Waiting for sms)/i.test(smsRaw)) {
+                return;
+            }
+
+            // If same SMS as before → skip (no new code)
+            if (smsRaw === lastReceivedSms) return;
+
+            // New SMS received! Update display with latest code
+            lastReceivedSms = smsRaw;
+
+            const digits = document.getElementById('otpCode');
+            digits.classList.add('received');
+
+            if (/^\d{3,8}$/.test(smsRaw)) {
+                digits.innerHTML = smsRaw.split('').map(d => `<span>${d}</span>`).join('');
+            } else {
+                digits.innerHTML = `<span class="otp-full-text">${smsRaw}</span>`;
+            }
+
+            document.getElementById('otpStatus').textContent = 'Diterima ✓';
+            document.getElementById('otpStatus').style.background = '#ecfdf5';
+            document.getElementById('otpStatus').style.color = '#059669';
+            document.querySelector('.otp-pulse').classList.add('success');
+            document.querySelector('.otp-result-header h3').textContent = '📱 OTP Diterima!';
+
+            playNotifSound();
+
+            // Update order with latest code
+            const successIdx = orders.findIndex(o => o.id === orderId);
+            if (successIdx !== -1) {
+                orders[successIdx].otp = smsRaw;
+                orders[successIdx].status = 'success';
+                orders[successIdx].time = new Date().toLocaleString('id-ID');
+            }
+            updateOrderInDB(orderId, 'success', smsRaw);
+            updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
+
+            // Start 5-min timer on first code received, then stop polling
+            if (!otpReceivedTimeout) {
+                otpReceivedTimeout = setTimeout(() => {
+                    stopOTPPolling();
+                }, 5 * 60 * 1000); // 5 minutes
+            }
+
         } catch (e) { console.error('Poll error:', e); }
     }, 3000);
 }
-function stopOTPPolling() { if (otpPollTimer) { clearInterval(otpPollTimer); otpPollTimer = null; } }
+function stopOTPPolling() {
+    if (otpPollTimer) { clearInterval(otpPollTimer); otpPollTimer = null; }
+    if (otpReceivedTimeout) { clearTimeout(otpReceivedTimeout); otpReceivedTimeout = null; }
+}
 function stopCountdownTimers() {
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
     if (cancelDelayTimer) { clearInterval(cancelDelayTimer); cancelDelayTimer = null; }

@@ -45,7 +45,7 @@ async function initDB() {
                 service VARCHAR(100),
                 country VARCHAR(100),
                 phone VARCHAR(50),
-                otp VARCHAR(20) DEFAULT '-',
+                otp TEXT DEFAULT '-',
                 status VARCHAR(20) DEFAULT 'pending',
                 server VARCHAR(10) DEFAULT 'v2',
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

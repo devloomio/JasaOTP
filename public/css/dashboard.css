@@ -1193,3 +1193,20 @@
         width: 0%;
     }
 }
+
+/* Full SMS text display (non-digit OTP) */
+.otp-full-text {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    padding: 14px 18px !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    line-height: 1.5;
+    text-align: center;
+    word-break: break-word;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.08), rgba(52, 211, 153, 0.08)) !important;
+    border: 2px solid rgba(5, 150, 105, 0.2) !important;
+    color: var(--text) !important;
+}
