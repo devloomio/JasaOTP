@@ -19,6 +19,24 @@ function playNotifSound() {
     } catch (e) { }
 }
 
+// Browser Notification (works in background tab)
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+function notifyOTP(code) {
+    try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const n = new Notification('📱 OTP Diterima!', {
+                body: `Kode: ${code}`,
+                icon: '/favicon.ico',
+                tag: 'otp-received',
+                requireInteraction: true,
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+        }
+    } catch (e) { }
+}
+
 // ============================================
 // Toast Notification
 // ============================================
@@ -601,6 +619,7 @@ function startOTPPolling(orderId) {
             document.querySelector('.otp-result-header h3').textContent = '📱 OTP Diterima!';
 
             playNotifSound();
+            notifyOTP(smsRaw);
 
             // Update order with latest code
             const successIdx = orders.findIndex(o => o.id === orderId);
