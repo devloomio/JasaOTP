@@ -52,7 +52,18 @@ async function initDB() {
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
         `);
-        console.log('✅ Database connected & tabel siap');
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS deposits (
+                id SERIAL PRIMARY KEY,
+                user_email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+                amount INTEGER NOT NULL,
+                method VARCHAR(50) NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'rejected')),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+        `);
+        console.log('✅ Database connected & tabel siap (users, order_history, deposits)');
     } catch (err) {
         console.error('❌ Database error:', err.message);
         console.log('⚠️  Fallback ke in-memory mode (data hilang saat restart)');
@@ -442,6 +453,91 @@ app.get('/api/order/:id', requireAuth, async (req, res) => {
     res.json(result);
 });
 
+// GET /api/order/:id/stream — SSE stream untuk OTP
+app.get('/api/order/:id/stream', requireAuth, (req, res) => {
+    const id = req.params.id;
+    const server = req.query.server || 'v2';
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+        return res.status(400).json({ success: false, message: 'ID tidak valid' });
+    }
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+    res.flushHeaders();
+
+    let closed = false;
+    let lastSms = null;
+    const startTime = Date.now();
+    const MAX_DURATION = 20 * 60 * 1000; // 20 menit
+
+    // Kirim heartbeat awal
+    res.write(': connected\n\n');
+
+    const interval = setInterval(async () => {
+        if (closed) { clearInterval(interval); return; }
+
+        // Timeout 20 menit
+        if (Date.now() - startTime > MAX_DURATION) {
+            res.write(`event: timeout\ndata: ${JSON.stringify({ message: 'Waktu habis' })}\n\n`);
+            clearInterval(interval);
+            res.end();
+            return;
+        }
+
+        try {
+            const result = await providerRequest('sms.php', { id }, server);
+
+            // Cek status gagal
+            const status = result.status || result.data?.status;
+            if (status === 'failed' || status === 'cancelled' || status === 'expired' || status === '3') {
+                res.write(`event: failed\ndata: ${JSON.stringify({ status: 'failed' })}\n\n`);
+                clearInterval(interval);
+                res.end();
+                return;
+            }
+
+            // Extract SMS dari berbagai field
+            let smsRaw = null;
+            const candidates = [
+                result.sms, result.code, result.otp,
+                result.data?.sms, result.data?.code, result.data?.otp,
+                result.message,
+            ];
+            for (const c of candidates) {
+                if (c && typeof c === 'string' && c.trim().length > 0) {
+                    smsRaw = c.trim();
+                    break;
+                }
+            }
+
+            // Masih menunggu
+            if (!smsRaw || /^(menunggu|waiting|pending|Menunggu sms|Waiting for sms)/i.test(smsRaw)) {
+                // Kirim heartbeat agar koneksi tidak timeout
+                res.write(': heartbeat\n\n');
+                return;
+            }
+
+            // SMS baru diterima
+            if (smsRaw !== lastSms) {
+                lastSms = smsRaw;
+                res.write(`event: otp\ndata: ${JSON.stringify({ sms: smsRaw })}\n\n`);
+            }
+        } catch (e) {
+            console.error('SSE poll error:', e.message);
+            res.write(': error\n\n');
+        }
+    }, 3000);
+
+    // Cleanup saat client disconnect
+    req.on('close', () => {
+        closed = true;
+        clearInterval(interval);
+    });
+});
+
 // POST /api/order/:id/cancel — cancel order
 app.post('/api/order/:id/cancel', requireAuth, async (req, res) => {
     const id = req.params.id;
@@ -514,6 +610,204 @@ app.put('/api/orders/:orderId', requireAuth, async (req, res) => {
     } catch (err) {
         console.error('Update order error:', err);
         res.status(500).json({ success: false, message: 'Gagal update order' });
+    }
+});
+
+// ============================================
+// Deposit API (Neon DB)
+// ============================================
+
+// GET /api/deposits — ambil riwayat deposit user
+app.get('/api/deposits', requireAuth, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, deposits: [] });
+        const { rows } = await pool.query(
+            'SELECT id, amount, method, status, created_at FROM deposits WHERE user_email = $1 ORDER BY created_at DESC LIMIT 100',
+            [req.userEmail]
+        );
+        const deposits = rows.map(r => ({
+            id: r.id,
+            amount: r.amount,
+            method: r.method,
+            status: r.status,
+            date: new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        }));
+        res.json({ success: true, deposits });
+    } catch (err) {
+        console.error('Get deposits error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat riwayat deposit' });
+    }
+});
+
+// POST /api/deposits — buat deposit baru
+app.post('/api/deposits', requireAuth, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true });
+        const { amount, method } = req.body;
+        if (!amount || !method) return res.status(400).json({ success: false, message: 'amount dan method diperlukan' });
+        if (amount < 5000) return res.status(400).json({ success: false, message: 'Minimal deposit Rp 5.000' });
+        const { rows } = await pool.query(
+            'INSERT INTO deposits (user_email, amount, method) VALUES ($1, $2, $3) RETURNING id, amount, method, status, created_at',
+            [req.userEmail, parseInt(amount), sanitize(method)]
+        );
+        res.json({ success: true, deposit: rows[0] });
+    } catch (err) {
+        console.error('Create deposit error:', err);
+        res.status(500).json({ success: false, message: 'Gagal membuat deposit' });
+    }
+});
+
+// ============================================
+// Admin API (Neon DB)
+// ============================================
+
+// GET /api/admin/stats — overview statistik
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, stats: {} });
+        const [usersR, ordersR, successR, depositsR] = await Promise.all([
+            pool.query('SELECT COUNT(*) FROM users'),
+            pool.query('SELECT COUNT(*) FROM order_history'),
+            pool.query("SELECT COUNT(*) FROM order_history WHERE status = 'success'"),
+            pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM deposits WHERE status = 'success'"),
+        ]);
+        const totalOrders = parseInt(ordersR.rows[0].count);
+        const successOrders = parseInt(successR.rows[0].count);
+        res.json({
+            success: true,
+            stats: {
+                totalUsers: parseInt(usersR.rows[0].count),
+                totalOrders,
+                totalRevenue: parseInt(depositsR.rows[0].total),
+                successRate: totalOrders > 0 ? Math.round((successOrders / totalOrders) * 100) : 0,
+            },
+        });
+    } catch (err) {
+        console.error('Admin stats error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat statistik' });
+    }
+});
+
+// GET /api/admin/users — list semua user
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, users: [] });
+        const { rows } = await pool.query(`
+            SELECT u.id, u.name, u.email, u.balance, u.role, u.created_at,
+                   COUNT(oh.id) as order_count
+            FROM users u
+            LEFT JOIN order_history oh ON u.email = oh.user_email
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        `);
+        const users = rows.map(r => ({
+            id: r.id,
+            name: r.name,
+            email: r.email,
+            balance: r.balance,
+            role: r.role,
+            orders: parseInt(r.order_count),
+            joined: new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        }));
+        res.json({ success: true, users });
+    } catch (err) {
+        console.error('Admin users error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat data user' });
+    }
+});
+
+// GET /api/admin/orders — list semua order
+app.get('/api/admin/orders', requireAdmin, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, orders: [] });
+        const { rows } = await pool.query(`
+            SELECT oh.id, oh.order_id, oh.service, oh.country, oh.phone, oh.otp, oh.status, oh.server, oh.created_at,
+                   u.name as user_name, u.email as user_email
+            FROM order_history oh
+            JOIN users u ON oh.user_email = u.email
+            ORDER BY oh.created_at DESC
+            LIMIT 200
+        `);
+        const orders = rows.map(r => ({
+            id: r.id,
+            orderId: r.order_id,
+            user: r.user_name,
+            email: r.user_email,
+            service: r.service,
+            country: r.country,
+            phone: r.phone,
+            otp: r.otp || '-',
+            status: r.status,
+            server: r.server,
+            time: new Date(r.created_at).toLocaleString('id-ID'),
+        }));
+        res.json({ success: true, orders });
+    } catch (err) {
+        console.error('Admin orders error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat data order' });
+    }
+});
+
+// GET /api/admin/deposits — list semua deposit
+app.get('/api/admin/deposits', requireAdmin, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true, deposits: [] });
+        const { rows } = await pool.query(`
+            SELECT d.id, d.amount, d.method, d.status, d.created_at,
+                   u.name as user_name, u.email as user_email
+            FROM deposits d
+            JOIN users u ON d.user_email = u.email
+            ORDER BY d.created_at DESC
+            LIMIT 200
+        `);
+        const deposits = rows.map(r => ({
+            id: r.id,
+            user: r.user_name,
+            email: r.user_email,
+            amount: r.amount,
+            method: r.method,
+            status: r.status,
+            time: new Date(r.created_at).toLocaleString('id-ID'),
+        }));
+        res.json({ success: true, deposits });
+    } catch (err) {
+        console.error('Admin deposits error:', err);
+        res.status(500).json({ success: false, message: 'Gagal memuat data deposit' });
+    }
+});
+
+// PUT /api/admin/deposits/:id — approve/reject deposit
+app.put('/api/admin/deposits/:id', requireAdmin, async (req, res) => {
+    try {
+        if (!hasDB()) return res.json({ success: true });
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!status || !['success', 'rejected'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Status harus success atau rejected' });
+        }
+
+        // Ambil deposit info
+        const { rows: depRows } = await pool.query('SELECT * FROM deposits WHERE id = $1', [id]);
+        if (depRows.length === 0) return res.status(404).json({ success: false, message: 'Deposit tidak ditemukan' });
+        const deposit = depRows[0];
+
+        // Jangan proses ulang deposit yang sudah selesai
+        if (deposit.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Deposit sudah diproses' });
+        }
+
+        // Update status deposit
+        await pool.query('UPDATE deposits SET status = $1, updated_at = NOW() WHERE id = $2', [status, id]);
+
+        // Jika approve, tambah saldo user
+        if (status === 'success') {
+            await pool.query('UPDATE users SET balance = balance + $1 WHERE email = $2', [deposit.amount, deposit.user_email]);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Admin deposit update error:', err);
+        res.status(500).json({ success: false, message: 'Gagal update deposit' });
     }
 });
 

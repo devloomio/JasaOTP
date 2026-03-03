@@ -1,5 +1,5 @@
-/* PusatOTP — Dashboard Logic (Provider API v1+v2) */
-/* Flow: Server → Negara → Layanan/Konfirmasi → OTP */
+/* PusatOTP — Dashboard Logic (SSE + DB) */
+/* Flow: Server → Negara → Layanan/Konfirmasi → OTP (via SSE) */
 
 // Notification sound (Web Audio API)
 function playNotifSound() {
@@ -28,7 +28,7 @@ function notifyOTP(code) {
         if ('Notification' in window && Notification.permission === 'granted') {
             const n = new Notification('📱 OTP Diterima!', {
                 body: `Kode: ${code}`,
-                icon: '/favicon.ico',
+                icon: '/favicon.svg',
                 tag: 'otp-received',
                 requireInteraction: true,
             });
@@ -42,7 +42,6 @@ function notifyOTP(code) {
 // ============================================
 let toastTimer = null;
 function showToast(message, type = 'info', duration = 3500) {
-    // Remove existing toast
     const old = document.getElementById('toastOverlay');
     if (old) { old.remove(); clearTimeout(toastTimer); }
 
@@ -62,8 +61,6 @@ function showToast(message, type = 'info', duration = 3500) {
         </div>
     `;
     document.body.appendChild(overlay);
-
-    // Animate in
     requestAnimationFrame(() => overlay.classList.add('show'));
 
     function dismiss() {
@@ -106,17 +103,17 @@ if (user) applyUser();
 // ============================================
 let balance = 0;
 let orders = [];
-let deposits = JSON.parse(localStorage.getItem('PusatOTP_deposits') || '[]');
-let currentServer = 'v2';      // 'v1' or 'v2'
-let currentServerLabel = '';    // '🐯 Harimau' etc
+let deposits = [];
+let currentServer = 'v2';
+let currentServerLabel = '';
 let countriesData = [];
 let allServices = [];
 let selectedCountry = null;
 let selectedService = null;
 let activeOrder = null;
-let otpPollTimer = null;
-let countdownTimer = null;      // global 20-min countdown interval
-let cancelDelayTimer = null;    // global 3-min cancel delay interval
+let eventSource = null;         // SSE connection
+let countdownTimer = null;
+let cancelDelayTimer = null;
 
 // Save/load orders from Neon DB
 async function loadOrdersFromDB() {
@@ -156,8 +153,25 @@ async function updateOrderInDB(orderId, status, otp) {
     } catch (e) { console.error('Update order error:', e); }
 }
 
-function saveDeposits() {
-    try { localStorage.setItem('PusatOTP_deposits', JSON.stringify(deposits.slice(0, 100))); } catch (e) { }
+// Load/save deposits from DB
+async function loadDepositsFromDB() {
+    try {
+        const data = await api('/api/deposits');
+        if (data.success && Array.isArray(data.deposits)) {
+            deposits = data.deposits;
+        }
+    } catch (e) { console.error('Load deposits error:', e); }
+    renderDeposits();
+}
+
+async function saveDepositToDB(amount, method) {
+    try {
+        const data = await api('/api/deposits', {
+            method: 'POST',
+            body: JSON.stringify({ amount, method }),
+        });
+        return data;
+    } catch (e) { console.error('Save deposit error:', e); return { success: false }; }
 }
 
 function rp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
@@ -302,7 +316,6 @@ async function loadServices() {
     let items = [];
     if (data && typeof data === 'object') {
         let dataObj = data.data || data;
-        // API nests inside country ID: { "6": { "tg": {...} } } — unwrap
         const vals = Object.values(dataObj);
         if (vals.length === 1 && typeof vals[0] === 'object' && vals[0] !== null && !Array.isArray(vals[0])) {
             dataObj = vals[0];
@@ -335,13 +348,11 @@ function renderServices(list) {
 
     grid.querySelectorAll('.service-card').forEach(card => {
         card.addEventListener('click', () => {
-            // Deselect previous
             grid.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
 
             selectedService = { code: card.dataset.code, name: card.dataset.name, price: parseInt(card.dataset.price) };
 
-            // Show confirm
             document.getElementById('confirmService').textContent = selectedService.name;
             document.getElementById('confirmCountry').textContent = selectedCountry.name;
             document.getElementById('confirmServer').textContent = currentServerLabel;
@@ -366,7 +377,7 @@ document.getElementById('backToStep2').addEventListener('click', () => {
     document.getElementById('searchCountry').value = '';
 });
 document.getElementById('btnNewOrder')?.addEventListener('click', () => {
-    stopOTPPolling();
+    stopSSE();
     stopCountdownTimers();
     document.getElementById('confirmCard').classList.remove('hidden');
     document.getElementById('otpResult').classList.add('hidden');
@@ -384,7 +395,7 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
             method: 'POST',
             body: JSON.stringify({ server: currentServer }),
         });
-        stopOTPPolling();
+        stopSSE();
         stopCountdownTimers();
         document.getElementById('otpStatus').textContent = 'Dibatalkan';
         document.getElementById('otpStatus').style.background = '#fef2f2';
@@ -392,7 +403,6 @@ document.getElementById('btnCancelOrder')?.addEventListener('click', async () =>
         document.querySelector('.otp-pulse').classList.add('success');
         document.querySelector('.otp-pulse').style.background = '#dc2626';
         document.querySelector('.otp-result-header h3').textContent = '❌ Order Dibatalkan';
-        // Update existing pending order instead of adding duplicate
         const cancelIdx = orders.findIndex(o => o.id === activeOrder.id);
         if (cancelIdx !== -1) {
             orders[cancelIdx].status = 'failed';
@@ -441,7 +451,7 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
 
         activeOrder = { id: orderId, number: phone, service: selectedService.name, country: selectedCountry.name };
 
-        // Immediately save order as pending so it appears in history
+        // Save order as pending
         const newOrder = { id: orderId, service: selectedService.name, country: selectedCountry.name, number: phone, otp: '-', status: 'pending', time: new Date().toLocaleString('id-ID') };
         orders.unshift(newOrder);
         saveOrderToDB(newOrder);
@@ -464,12 +474,13 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         document.querySelector('.otp-pulse').style.background = '';
         document.querySelector('.otp-result-header h3').textContent = '📱 Menunggu OTP';
 
-        if (orderId) startOTPPolling(orderId);
+        // Start SSE for OTP
+        if (orderId) startSSE(orderId);
 
         // Clear any previous timers before starting new ones
         stopCountdownTimers();
 
-        // Disable cancel for 3 minutes (timestamp-based to survive tab switch)
+        // Disable cancel for 3 minutes
         const cancelBtn = document.getElementById('btnCancelOrder');
         cancelBtn.disabled = true;
         const cancelEndTime = Date.now() + 180 * 1000;
@@ -487,7 +498,7 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
         updateCancelBtn();
         cancelDelayTimer = setInterval(updateCancelBtn, 1000);
 
-        // Timer 20 min (timestamp-based to survive tab switch)
+        // Timer 20 min
         const timerEndTime = Date.now() + 1200 * 1000;
         const timerEl = document.getElementById('otpTimer');
         function updateMainTimer() {
@@ -495,7 +506,7 @@ document.getElementById('btnBuy').addEventListener('click', async () => {
             const m = Math.floor(left / 60).toString().padStart(2, '0');
             const s = (left % 60).toString().padStart(2, '0');
             timerEl.textContent = `${m}:${s}`;
-            if (left <= 0) { clearInterval(countdownTimer); countdownTimer = null; stopOTPPolling(); }
+            if (left <= 0) { clearInterval(countdownTimer); countdownTimer = null; stopSSE(); }
         }
         updateMainTimer();
         countdownTimer = setInterval(updateMainTimer, 1000);
@@ -544,61 +555,20 @@ document.getElementById('btnCopy').addEventListener('click', () => {
 });
 
 // ============================================
-// OTP Polling
+// SSE — Server-Sent Events for OTP
 // ============================================
-let lastReceivedSms = null; // track last SMS to detect new codes
-let otpReceivedTimeout = null; // 5-min timer after first code received
+function startSSE(orderId) {
+    stopSSE();
 
-function startOTPPolling(orderId) {
-    stopOTPPolling();
-    lastReceivedSms = null;
+    const url = `/api/order/${orderId}/stream?server=${currentServer}`;
+    eventSource = new EventSource(url);
 
-    otpPollTimer = setInterval(async () => {
+    // OTP diterima
+    eventSource.addEventListener('otp', (e) => {
         try {
-            const result = await api(`/api/order/${orderId}?server=${currentServer}`);
-
-            // Check if status is failed/cancelled/expired first
-            const status = result.status || result.data?.status;
-            if (status === 'failed' || status === 'cancelled' || status === 'expired' || status === '3') {
-                document.getElementById('otpStatus').textContent = 'Gagal';
-                document.getElementById('otpStatus').style.background = '#fef2f2';
-                document.getElementById('otpStatus').style.color = '#dc2626';
-                const failIdx = orders.findIndex(o => o.id === orderId);
-                if (failIdx !== -1) {
-                    orders[failIdx].status = 'failed';
-                    orders[failIdx].time = new Date().toLocaleString('id-ID');
-                }
-                updateOrderInDB(orderId, 'failed');
-                updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
-                stopOTPPolling();
-                stopCountdownTimers();
-                return;
-            }
-
-            // Extract raw SMS/OTP from API response (check multiple fields)
-            let smsRaw = null;
-            const candidates = [
-                result.sms, result.code, result.otp,
-                result.data?.sms, result.data?.code, result.data?.otp,
-                result.message,
-            ];
-            for (const c of candidates) {
-                if (c && typeof c === 'string' && c.trim().length > 0) {
-                    smsRaw = c.trim();
-                    break;
-                }
-            }
-
-            // If SMS is still "waiting" / "menunggu" / empty → keep polling
-            if (!smsRaw || /^(menunggu|waiting|pending|Menunggu sms|Waiting for sms)/i.test(smsRaw)) {
-                return;
-            }
-
-            // If same SMS as before → skip (no new code)
-            if (smsRaw === lastReceivedSms) return;
-
-            // New SMS received! Update display with latest code
-            lastReceivedSms = smsRaw;
+            const data = JSON.parse(e.data);
+            const smsRaw = data.sms;
+            if (!smsRaw) return;
 
             const digits = document.getElementById('otpCode');
             digits.classList.add('received');
@@ -618,7 +588,7 @@ function startOTPPolling(orderId) {
             playNotifSound();
             notifyOTP(smsRaw);
 
-            // Update order with latest code
+            // Update order
             const successIdx = orders.findIndex(o => o.id === orderId);
             if (successIdx !== -1) {
                 orders[successIdx].otp = smsRaw;
@@ -627,21 +597,48 @@ function startOTPPolling(orderId) {
             }
             updateOrderInDB(orderId, 'success', smsRaw);
             updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
+        } catch (err) { console.error('SSE otp parse error:', err); }
+    });
 
-            // Start 5-min timer on first code received, then stop polling
-            if (!otpReceivedTimeout) {
-                otpReceivedTimeout = setTimeout(() => {
-                    stopOTPPolling();
-                }, 5 * 60 * 1000); // 5 minutes
-            }
+    // Order gagal
+    eventSource.addEventListener('failed', (e) => {
+        document.getElementById('otpStatus').textContent = 'Gagal';
+        document.getElementById('otpStatus').style.background = '#fef2f2';
+        document.getElementById('otpStatus').style.color = '#dc2626';
+        const failIdx = orders.findIndex(o => o.id === orderId);
+        if (failIdx !== -1) {
+            orders[failIdx].status = 'failed';
+            orders[failIdx].time = new Date().toLocaleString('id-ID');
+        }
+        updateOrderInDB(orderId, 'failed');
+        updateStats(); renderOrders('recentOrders', false); renderOrders('historyOrders', true);
+        stopSSE();
+        stopCountdownTimers();
+    });
 
-        } catch (e) { console.error('Poll error:', e); }
-    }, 3000);
+    // Timeout
+    eventSource.addEventListener('timeout', (e) => {
+        document.getElementById('otpStatus').textContent = 'Waktu habis';
+        document.getElementById('otpStatus').style.background = '#fef2f2';
+        document.getElementById('otpStatus').style.color = '#dc2626';
+        stopSSE();
+        stopCountdownTimers();
+    });
+
+    // Connection error
+    eventSource.onerror = (e) => {
+        console.error('SSE connection error:', e);
+        // EventSource will auto-reconnect by default
+    };
 }
-function stopOTPPolling() {
-    if (otpPollTimer) { clearInterval(otpPollTimer); otpPollTimer = null; }
-    if (otpReceivedTimeout) { clearTimeout(otpReceivedTimeout); otpReceivedTimeout = null; }
+
+function stopSSE() {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
 }
+
 function stopCountdownTimers() {
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
     if (cancelDelayTimer) { clearInterval(cancelDelayTimer); cancelDelayTimer = null; }
@@ -677,30 +674,36 @@ function renderOrders(targetId, showAll) {
 function renderDeposits() {
     const tbody = document.getElementById('depositHistory');
     if (deposits.length === 0) { tbody.innerHTML = '<tr class="tbl-empty"><td colspan="4">Belum ada riwayat deposit</td></tr>'; return; }
-    tbody.innerHTML = deposits.map(d => `<tr><td>${d.date}</td><td><strong>${d.amount}</strong></td><td>${d.method}</td><td><span class="status-badge status-${d.status}">${d.status === 'success' ? 'Berhasil' : 'Pending'}</span></td></tr>`).join('');
+    tbody.innerHTML = deposits.map(d => `<tr><td>${d.date}</td><td><strong>${rp(d.amount)}</strong></td><td>${d.method}</td><td><span class="status-badge status-${d.status}">${d.status === 'success' ? 'Berhasil' : d.status === 'rejected' ? 'Ditolak' : 'Pending'}</span></td></tr>`).join('');
 }
 
 // ============================================
-// Deposit
+// Deposit (DB-backed)
 // ============================================
 const depositAmount = document.getElementById('depositAmount');
 const btnDeposit = document.getElementById('btnDeposit');
 depositAmount.addEventListener('change', () => { btnDeposit.disabled = !depositAmount.value; });
-btnDeposit.addEventListener('click', () => {
+btnDeposit.addEventListener('click', async () => {
     const amount = parseInt(depositAmount.value);
     if (!amount) return;
     const method = document.querySelector('input[name="payment"]:checked').value.toUpperCase();
-    deposits.unshift({
-        date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-        amount: rp(amount),
-        method: method,
-        status: 'pending'
-    });
-    saveDeposits();
-    renderDeposits();
-    depositAmount.value = '';
+
     btnDeposit.disabled = true;
-    showToast(`Deposit ${rp(amount)} via ${method} sedang diproses. Hubungi admin untuk konfirmasi.`, 'info');
+    btnDeposit.textContent = '⏳ Memproses...';
+
+    const result = await saveDepositToDB(amount, method);
+
+    if (result.success) {
+        // Reload deposits dari DB
+        await loadDepositsFromDB();
+        depositAmount.value = '';
+        showToast(`Deposit ${rp(amount)} via ${method} sedang diproses. Hubungi admin untuk konfirmasi.`, 'info');
+    } else {
+        showToast(result.message || 'Gagal membuat deposit', 'error');
+    }
+
+    btnDeposit.disabled = false;
+    btnDeposit.textContent = 'Deposit Sekarang';
 });
 
 // ============================================
@@ -712,3 +715,4 @@ renderOrders('recentOrders', false);
 renderOrders('historyOrders', true);
 renderDeposits();
 loadOrdersFromDB();
+loadDepositsFromDB();
